@@ -8,10 +8,10 @@ from transformers import RobertaForSequenceClassification, TrainingArguments, Tr
 from datasets import load_dataset, ClassLabel, Value, load_metric, load_from_disk
 
 # ---------------------------------- load data set
-train_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject2/train_tokenized")
-valid_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject2/valid_tokenized")
+train_tokenized = load_from_disk("/train_tokenized")
+valid_tokenized = load_from_disk("/valid_tokenized") # use roberta tokenizer not bert 
 tokenizer = AutoTokenizer.from_pretrained('roberta-base')
-model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels =1)
+model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels =1) # num_labels = 1 since this is prediction not multi
 
 
 # dynmaic padding
@@ -49,7 +49,7 @@ training_args = TrainingArguments(
     num_train_epochs=4,
     metric_for_best_model = 'rmse',
     weight_decay=0.01,
-     output_dir="/Users/ruochentan1/PycharmProjects/pythonProject2/")
+     output_dir="/")
 
 trainer = Trainer(
     model,
@@ -70,7 +70,7 @@ trainer.evaluate() # call the summary
 #----------- save fine tuned models
 from pytorch_transformers import WEIGHTS_NAME, CONFIG_NAME
 
-output_dir = "/Users/ruochentan1/PycharmProjects/pythonProject2"
+output_dir = "/"
 
 # Step 1: Save a model, configuration and vocabulary that you have fine-tuned
 
@@ -99,7 +99,7 @@ tokenizer = AutoTokenizer.from_pretrained(output_dir)  # Add specific options if
 output_dir = "/Users/ruochentan1/PycharmProjects/pythonProject2"
 model = RobertaForSequenceClassification.from_pretrained(output_dir)
 tokenizer = AutoTokenizer.from_pretrained(output_dir)  # Add specific options if needed
-test_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject1/test_tokenized")
+test_tokenized = load_from_disk("/test_tokenized")
 training_args = TrainingArguments(
     evaluation_strategy = "epoch",
     save_strategy = "epoch",
@@ -108,7 +108,7 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=20,
     num_train_epochs=4,
     weight_decay=0.01,
-     output_dir="/Users/ruochentan1/PycharmProjects/pythonProject2/")
+     output_dir="/")
 
 trainer = Trainer(
     model,
@@ -123,8 +123,8 @@ predictions2 = trainer.predict(test_tokenized) #predictions2.predictions has all
 
 
 #---- comparison with original labels
-df_test = pd.read_csv("/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_test.csv")
-df_test_full= pd.read_csv("/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_test_full.csv")
+df_test = pd.read_csv("/new_df_test.csv")
+df_test_full= pd.read_csv("/new_df_test_full.csv")
 df_test["Fine-tuned_Score"] = predictions2.predictions
 df_test["Full_Score"] =df_test_full["Reviewer_Score"]
 df_test["added_score"]=df_test['Reviewer_Score'].fillna(df_test["Fine-tuned_Score"]) # add fine-tuned score to nan in reviewer score
@@ -133,24 +133,3 @@ df_test["added_score"]=df_test['Reviewer_Score'].fillna(df_test["Fine-tuned_Scor
 
 df_test.to_csv("new_df_test_result_roberta.csv", index =False, header = True)
 
-
-
-# Generate a sequence of integers to represent the epoch numbers
-epochs = range(0, 4)
-train_values = [9.8176, 4.6409, 3.6732, 3.2851]
-val_values = [5.15823364, 4.36231, 4.01685,3.671488]
-# Plot and label the training and validation loss values
-from matplotlib.pylab import plt
-import numpy as np
-plt.plot(epochs, train_values, label ='Training Loss')
-plt.plot(epochs, val_values, label='Validation Loss')
-
-# Add in a title and axes labels
-plt.title('Training and Validation Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-
-
-# Display the plot
-plt.legend(loc='best')
-plt.show()
