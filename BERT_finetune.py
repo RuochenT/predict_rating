@@ -10,25 +10,17 @@ from datasets import load_dataset, ClassLabel, Value, load_metric, load_from_dis
 
 #-------------- import data set in DatasetDict format and split train/validation 70:30
 
-df_train= load_dataset("csv", data_files="/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_train.csv",
+df_train= load_dataset("csv", data_files="/new_df_train.csv",
                        split="train") # should define split
-df_valid = load_dataset("csv", data_files="/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_valid.csv",
+df_valid = load_dataset("csv", data_files="/new_df_valid.csv",
                        split="train")
 print(df_train)
-
-df = load_dataset('csv', data_files={'train': ["/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_train.csv"],
-                                              'test': ["/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_valid.csv"]})
-
 
 # remove unuseful columns (diff format from pandas)
 train = df_train.remove_columns(['Hotel_Name', 'Hotel_Address', 'Additional_Number_of_Scoring', 'Review_Date', 'Average_Score', \
                       'Reviewer_Nationality', 'Review_Total_Negative_Word_Counts', 'Total_Number_of_Reviews', 'Review_Total_Positive_Word_Counts', 'Total_Number_of_Reviews_Reviewer_Has_Given'
                                  , "Tags","days_since_review","Positive_Review","Negative_Review","lat","lng","review_type","customerID"])
 valid = df_valid.remove_columns(['Hotel_Name', 'Hotel_Address', 'Additional_Number_of_Scoring', 'Review_Date', 'Average_Score', \
-                      'Reviewer_Nationality', 'Review_Total_Negative_Word_Counts', 'Total_Number_of_Reviews', 'Review_Total_Positive_Word_Counts', 'Total_Number_of_Reviews_Reviewer_Has_Given'
-                                 , "Tags","days_since_review", "Positive_Review","Negative_Review","lat","lng","review_type","customerID"])
-
-df = df.remove_columns(['Hotel_Name', 'Hotel_Address', 'Additional_Number_of_Scoring', 'Review_Date', 'Average_Score', \
                       'Reviewer_Nationality', 'Review_Total_Negative_Word_Counts', 'Total_Number_of_Reviews', 'Review_Total_Positive_Word_Counts', 'Total_Number_of_Reviews_Reviewer_Has_Given'
                                  , "Tags","days_since_review", "Positive_Review","Negative_Review","lat","lng","review_type","customerID"])
 
@@ -47,8 +39,7 @@ valid_tokenized = valid_tokenized.rename_column("review", "text")
 train_tokenized = train_tokenized.rename_column("Reviewer_Score", "labels")
 train_tokenized = train_tokenized.rename_column("review", "text")
 
-df_tokenized = df_tokenized.rename_column("Reviewer_Score", "labels")
-df_tokenized = df_tokenized.rename_column("review", "text")
+
 
 valid_tokenized.set_format("torch", columns=["input_ids",
                                              "attention_mask",
@@ -56,9 +47,7 @@ valid_tokenized.set_format("torch", columns=["input_ids",
 train_tokenized.set_format("torch", columns=["input_ids",
                                              "attention_mask",
                                              "labels","token_type_ids"])
-df_tokenized.set_format("torch", columns=["input_ids",
-                                             "attention_mask",
-                                             "labels","token_type_ids"])
+
 train_tokenized[0] # check
 valid_tokenized[0]
 
@@ -66,8 +55,8 @@ train_tokenized.save_to_disk("train_tokenized")
 valid_tokenized.save_to_disk("valid_tokenized")
 
 # ---------------------------------- load data set
-train_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject1/train_tokenized")
-valid_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject1/valid_tokenized")
+train_tokenized = load_from_disk("/train_tokenized")
+valid_tokenized = load_from_disk("/valid_tokenized")
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 
@@ -178,7 +167,7 @@ metric.compute(predictions=predictions.predictions, references=predictions.label
 
 # --------- predict with test set
 # load and preprocessing
-df_test = load_dataset("csv", data_files="/Users/ruochentan1/PycharmProjects/pythonProject1/new_df_test.csv",
+df_test = load_dataset("csv", data_files="/new_df_test.csv",
                        split="train")
 test_tokenized = df_test.map(lambda batch: tokenizer(batch['review'], padding='max_length', truncation=True, max_length=32))
 test_tokenzied = test_tokenized.remove_columns(['Hotel_Name', 'Hotel_Address', 'Additional_Number_of_Scoring', 'Review_Date', 'Average_Score', \
@@ -191,10 +180,10 @@ test_tokenized.set_format("torch", columns=["input_ids", "token_type_ids", "atte
 test_tokenized.save_to_disk("test_tokenized")
 
 # predict with fine-tuned model
-output_dir = "/Users/ruochentan1/PycharmProjects/pythonProject1"
+output_dir = "/pythonProject1"
 model = BertForSequenceClassification.from_pretrained(output_dir)
 tokenizer = BertTokenizer.from_pretrained(output_dir)  # Add specific options if needed
-test_tokenized = load_from_disk("/Users/ruochentan1/PycharmProjects/pythonProject1/test_tokenized")
+test_tokenized = load_from_disk("/test_tokenized")
 training_args = TrainingArguments(
     evaluation_strategy = "epoch",
     save_strategy = "epoch",
@@ -204,7 +193,7 @@ training_args = TrainingArguments(
     logging_strategy= "epoch",
     num_train_epochs=3,
     weight_decay=0.01,
-     output_dir="/Users/ruochentan1/PycharmProjects/pythonProject1/")
+     output_dir="/pythonProject1/")
 
 trainer = Trainer(
     model,
@@ -229,28 +218,3 @@ df_test["added_score"]=df_test['Reviewer_Score'].fillna(df_test["Fine-tuned_Scor
 df_test.to_csv("new_df_test_result.csv", index =False, header = True)
 
 
-# validation and trainning loss
-
-
-from matplotlib.pylab import plt
-import numpy as np
-from numpy import arange
-
-
-# Generate a sequence of integers to represent the epoch numbers
-epochs = range(0, 4)
-train_values = [ 11.718, 2.770,  2.104,  1.800]
-val_values = [ 3.197, 2.360, 2.361, 2.363]
-# Plot and label the training and validation loss values
-plt.plot(epochs, train_values, label ='Training Loss')
-plt.plot(epochs, val_values, label='Validation Loss')
-
-# Add in a title and axes labels
-plt.title('Training and Validation Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-
-
-# Display the plot
-plt.legend(loc='best')
-plt.show()
